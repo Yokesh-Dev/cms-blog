@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Post</title>
+</head>
+<body>
+  <div id="post">Loading post...</div>
+
+  <script>
+    const projectId = 'ltu8jl1f';
+    const dataset = 'production';
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+
+    if (!slug) {
+      document.getElementById('post').innerHTML = '<p>No slug provided in URL.</p>';
+      throw new Error('No slug in URL');
+    }
+
+    const query = encodeURIComponent(`*[_type == "post" && slug.current == "${slug}"][0]{title, body}`);
+    const url = `https://${projectId}.api.sanity.io/v1/data/query/${dataset}?query=${query}`;
+
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then(({ result }) => {
+        const postDiv = document.getElementById('post');
+
+        if (!result) {
+          postDiv.innerHTML = '<p>Post not found.</p>';
+          return;
+        }
+
+        console.log('Post content from Sanity:', result);
+
+        postDiv.innerHTML = `<h1>${result.title}</h1>`;
+
+        if (Array.isArray(result.body) && result.body.length > 0) {
+          result.body.forEach(block => {
+            const text = block.children?.map(child => child.text).join('') || '';
+            postDiv.innerHTML += `<p>${text}</p>`;
+          });
+        } else {
+          postDiv.innerHTML += '<p><em>No body content found.</em></p>';
+        }
+      })
+      .catch(err => {
+        console.error('Error loading post:', err);
+        document.getElementById('post').innerHTML = '<p>Failed to load post.</p>';
+      });
+  </script>
+</body>
+</html>
